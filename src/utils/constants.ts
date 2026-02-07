@@ -22,11 +22,13 @@ export const EARTH_TEXTURE = '/textures/earth.jpg';
 export const DIRECTIONAL_LIGHT_POSITION = [5, 3, 5] as const;
 
 /** Camera controls */
-export const CONTROLS_ROTATE_SPEED = 0.0008;
+export const CONTROLS_ROTATE_SPEED = 0.005;
+export const CONTROLS_ROLL_SPEED = 0.001;
+export const CONTROLS_TOUCH_MULTIPLIER = 2;
 export const CONTROLS_ZOOM_SPEED = 0.05;
 export const CONTROLS_MIN_DISTANCE = 1.1;
 export const CONTROLS_MAX_DISTANCE = 20;
-export const CONTROLS_DAMPING = 0.9;
+export const CONTROLS_DAMPING = 0.2;
 
 /** Lights constants */
 // Ambient light intensity

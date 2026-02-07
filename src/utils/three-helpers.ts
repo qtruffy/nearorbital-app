@@ -7,7 +7,9 @@ import {
   CONTROLS_DAMPING,
   CONTROLS_MAX_DISTANCE,
   CONTROLS_MIN_DISTANCE,
+  CONTROLS_ROLL_SPEED,
   CONTROLS_ROTATE_SPEED,
+  CONTROLS_TOUCH_MULTIPLIER,
   CONTROLS_ZOOM_SPEED,
   DIRECTIONAL_LIGHT_INTENSITY,
   DIRECTIONAL_LIGHT_POSITION,
@@ -76,32 +78,111 @@ export function createCameraControls(
   let vx = 0;
   let vy = 0;
   let isDragging = false;
+  let isRolling = false;
   let prevX = 0;
   let prevY = 0;
+
+  const activePointers = new Map<number, { x: number; y: number }>();
+  let prevPinchDist = 0;
+  let prevPinchAngle = 0;
 
   const quat = new THREE.Quaternion();
   const axis = new THREE.Vector3();
   const offset = new THREE.Vector3();
 
+  function getPointerDistance() {
+    const pts = [...activePointers.values()];
+    const dx = pts[0].x - pts[1].x;
+    const dy = pts[0].y - pts[1].y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getPointerAngle() {
+    const pts = [...activePointers.values()];
+    return Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+  }
+
+  function onContextMenu(e: Event) {
+    e.preventDefault();
+  }
+
   function onPointerDown(e: PointerEvent) {
-    if (e.button !== 0) return;
-    isDragging = true;
-    prevX = e.clientX;
-    prevY = e.clientY;
+    if (e.button !== 0 && e.button !== 2) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     domElement.setPointerCapture(e.pointerId);
+
+    if (e.button === 2) {
+      isRolling = true;
+      prevX = e.clientX;
+    } else if (activePointers.size === 1) {
+      isDragging = true;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    } else if (activePointers.size === 2) {
+      isDragging = false;
+      prevPinchDist = getPointerDistance();
+      prevPinchAngle = getPointerAngle();
+    }
   }
 
   function onPointerMove(e: PointerEvent) {
-    if (!isDragging) return;
-    vx -= (e.clientX - prevX) * CONTROLS_ROTATE_SPEED;
-    vy -= (e.clientY - prevY) * CONTROLS_ROTATE_SPEED;
-    prevX = e.clientX;
-    prevY = e.clientY;
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 2) {
+      const dist = getPointerDistance();
+      const scale = prevPinchDist / dist;
+      radius = THREE.MathUtils.clamp(
+        radius * scale,
+        CONTROLS_MIN_DISTANCE,
+        CONTROLS_MAX_DISTANCE
+      );
+      prevPinchDist = dist;
+
+      const angle = getPointerAngle();
+      const deltaAngle = angle - prevPinchAngle;
+      if (Math.abs(deltaAngle) > 1e-6) {
+        // Rotate camera "up" vector around the view axis
+        axis.copy(camera.position).sub(target).normalize();
+        quat.setFromAxisAngle(axis, deltaAngle);
+        camera.up.applyQuaternion(quat);
+        camera.lookAt(target);
+      }
+      prevPinchAngle = angle;
+    } else if (isRolling) {
+      const delta = (e.clientX - prevX) * CONTROLS_ROLL_SPEED;
+      axis.copy(camera.position).sub(target).normalize();
+      quat.setFromAxisAngle(axis, delta);
+      camera.up.applyQuaternion(quat);
+      camera.lookAt(target);
+      prevX = e.clientX;
+    } else if (isDragging) {
+      const isTouch = e.pointerType === 'touch';
+      const speed =
+        CONTROLS_ROTATE_SPEED *
+        (radius / CONTROLS_MAX_DISTANCE) *
+        (isTouch ? CONTROLS_TOUCH_MULTIPLIER : 1);
+      vx -= (e.clientX - prevX) * speed;
+      vy -= (e.clientY - prevY) * speed;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    }
   }
 
   function onPointerUp(e: PointerEvent) {
-    isDragging = false;
+    activePointers.delete(e.pointerId);
     domElement.releasePointerCapture(e.pointerId);
+
+    if (e.button === 2) {
+      isRolling = false;
+    } else if (activePointers.size === 1) {
+      const remaining = [...activePointers.values()][0];
+      isDragging = true;
+      prevX = remaining.x;
+      prevY = remaining.y;
+    } else if (activePointers.size === 0) {
+      isDragging = false;
+    }
   }
 
   function onWheel(e: WheelEvent) {
@@ -117,6 +198,7 @@ export function createCameraControls(
   domElement.addEventListener('pointermove', onPointerMove);
   domElement.addEventListener('pointerup', onPointerUp);
   domElement.addEventListener('wheel', onWheel, { passive: false });
+  domElement.addEventListener('contextmenu', onContextMenu);
 
   function update() {
     if (Math.abs(vx) > 1e-6 || Math.abs(vy) > 1e-6) {
@@ -152,6 +234,7 @@ export function createCameraControls(
     domElement.removeEventListener('pointermove', onPointerMove);
     domElement.removeEventListener('pointerup', onPointerUp);
     domElement.removeEventListener('wheel', onWheel);
+    domElement.removeEventListener('contextmenu', onContextMenu);
   }
 
   return { update, dispose };
