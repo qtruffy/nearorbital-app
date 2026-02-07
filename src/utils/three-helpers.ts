@@ -85,6 +85,8 @@ export function createCameraControls(
   const activePointers = new Map<number, { x: number; y: number }>();
   let prevPinchDist = 0;
   let prevPinchAngle = 0;
+  let prevMidX = 0;
+  let prevMidY = 0;
 
   const quat = new THREE.Quaternion();
   const axis = new THREE.Vector3();
@@ -100,6 +102,14 @@ export function createCameraControls(
   function getPointerAngle() {
     const pts = [...activePointers.values()];
     return Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+  }
+
+  function getPointerMidpoint() {
+    const pts = [...activePointers.values()];
+    return {
+      x: (pts[0].x + pts[1].x) / 2,
+      y: (pts[0].y + pts[1].y) / 2,
+    };
   }
 
   function onContextMenu(e: Event) {
@@ -122,6 +132,9 @@ export function createCameraControls(
       isDragging = false;
       prevPinchDist = getPointerDistance();
       prevPinchAngle = getPointerAngle();
+      const mid = getPointerMidpoint();
+      prevMidX = mid.x;
+      prevMidY = mid.y;
     }
   }
 
@@ -130,6 +143,7 @@ export function createCameraControls(
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.size === 2) {
+      // Zoom via pinch
       const dist = getPointerDistance();
       const scale = prevPinchDist / dist;
       radius = THREE.MathUtils.clamp(
@@ -139,16 +153,27 @@ export function createCameraControls(
       );
       prevPinchDist = dist;
 
+      // Roll via twist
       const angle = getPointerAngle();
       const deltaAngle = angle - prevPinchAngle;
       if (Math.abs(deltaAngle) > 1e-6) {
-        // Rotate camera "up" vector around the view axis
         axis.copy(camera.position).sub(target).normalize();
         quat.setFromAxisAngle(axis, deltaAngle);
         camera.up.applyQuaternion(quat);
         camera.lookAt(target);
       }
       prevPinchAngle = angle;
+
+      // Rotate via midpoint movement
+      const mid = getPointerMidpoint();
+      const speed =
+        CONTROLS_ROTATE_SPEED *
+        (radius / CONTROLS_MAX_DISTANCE) *
+        CONTROLS_TOUCH_MULTIPLIER;
+      vx -= (mid.x - prevMidX) * speed;
+      vy -= (mid.y - prevMidY) * speed;
+      prevMidX = mid.x;
+      prevMidY = mid.y;
     } else if (isRolling) {
       const delta = (e.clientX - prevX) * CONTROLS_ROLL_SPEED;
       axis.copy(camera.position).sub(target).normalize();
