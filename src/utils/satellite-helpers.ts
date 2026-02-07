@@ -2,6 +2,7 @@ import {
   EARTH_RADIUS,
   EARTH_RADIUS_KM,
   MU_EARTH_KM3S2,
+  ORBIT_SEGMENTS,
 } from '@/utils/constants';
 
 export interface SatelliteOrbitalData {
@@ -131,4 +132,49 @@ export function propagateFromCache(
     out[idx + 1] = (buf[off + 10] * xOrb + buf[off + 11] * yOrb) * SCALE;
     out[idx + 2] = (buf[off + 8] * xOrb + buf[off + 9] * yOrb) * SCALE;
   }
+}
+
+/**
+ * Compute the full orbit path (one revolution) for a single satellite.
+ * Returns a Float32Array of (ORBIT_SEGMENTS + 1) * 3 values (closed loop).
+ */
+export function computeOrbitPath(
+  cache: OrbitCache,
+  satIndex: number,
+): Float32Array {
+  const segments = ORBIT_SEGMENTS;
+  const out = new Float32Array((segments + 1) * 3);
+  const off = satIndex * STRIDE;
+  const { buf } = cache;
+
+  const ecc = buf[off + 3];
+  const a = buf[off + 4];
+  const sqrtE = buf[off + 5];
+
+  for (let i = 0; i <= segments; i++) {
+    const M = (i / segments) * TWO_PI;
+
+    // Solve Kepler
+    let E = M;
+    for (let j = 0; j < 6; j++) {
+      E -= (E - ecc * Math.sin(E) - M) / (1 - ecc * Math.cos(E));
+    }
+
+    const cosE = Math.cos(E);
+    const sinE = Math.sin(E);
+    const denom = 1 - ecc * cosE;
+    const cosV = (cosE - ecc) / denom;
+    const sinV = (sqrtE * sinE) / denom;
+
+    const r = a * denom;
+    const xOrb = r * cosV;
+    const yOrb = r * sinV;
+
+    const idx = i * 3;
+    out[idx] = (buf[off + 6] * xOrb + buf[off + 7] * yOrb) * SCALE;
+    out[idx + 1] = (buf[off + 10] * xOrb + buf[off + 11] * yOrb) * SCALE;
+    out[idx + 2] = (buf[off + 8] * xOrb + buf[off + 9] * yOrb) * SCALE;
+  }
+
+  return out;
 }

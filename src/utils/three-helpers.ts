@@ -16,6 +16,10 @@ import {
   EARTH_RADIUS,
   EARTH_SEGMENTS,
   EARTH_TEXTURE,
+  ORBIT_DASH_SIZE,
+  ORBIT_GAP_SIZE,
+  ORBIT_LINE_COLOR,
+  ORBIT_LINE_OPACITY,
   SATELLITE_COLOR,
   SATELLITE_OPACITY,
   SATELLITE_POINT_SIZE,
@@ -295,4 +299,25 @@ export function updateSatellitePositions(
   ) as THREE.BufferAttribute;
   attr.array.set(positions);
   attr.needsUpdate = true;
+}
+
+export function createOrbitLine(pathPositions: Float32Array) {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(pathPositions, 3),
+  );
+
+  const material = new THREE.LineDashedMaterial({
+    color: ORBIT_LINE_COLOR,
+    transparent: true,
+    opacity: ORBIT_LINE_OPACITY,
+    dashSize: ORBIT_DASH_SIZE,
+    gapSize: ORBIT_GAP_SIZE,
+    depthWrite: false,
+  });
+
+  const line = new THREE.Line(geometry, material);
+  line.computeLineDistances();
+  return line;
 }

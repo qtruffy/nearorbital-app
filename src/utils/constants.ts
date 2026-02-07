@@ -49,3 +49,17 @@ export const SATELLITE_COLOR = 0x4fc3f7;
 export const SATELLITE_OPACITY = 0.8;
 // Available time warp speeds
 export const TIME_WARP_SPEEDS = [1, 10, 100, 500, 2000] as const;
+
+/** Orbit line */
+// Number of segments to draw one full orbit
+export const ORBIT_SEGMENTS = 256;
+// Orbit line color
+export const ORBIT_LINE_COLOR = 0x4fc3f7;
+// Orbit line opacity
+export const ORBIT_LINE_OPACITY = 0.5;
+// Dash size (scene units)
+export const ORBIT_DASH_SIZE = 0.04;
+// Gap size (scene units)
+export const ORBIT_GAP_SIZE = 0.02;
+// Raycaster threshold for picking satellite points
+export const PICK_THRESHOLD = 0.005;
