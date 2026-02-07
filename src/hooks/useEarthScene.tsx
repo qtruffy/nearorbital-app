@@ -44,7 +44,7 @@ const useEarthScene = () => {
   const cycleTimeWarp = useCallback(() => {
     setTimeWarp(prev => {
       const idx = TIME_WARP_SPEEDS.indexOf(
-        prev as (typeof TIME_WARP_SPEEDS)[number],
+        prev as (typeof TIME_WARP_SPEEDS)[number]
       );
       return TIME_WARP_SPEEDS[(idx + 1) % TIME_WARP_SPEEDS.length];
     });
