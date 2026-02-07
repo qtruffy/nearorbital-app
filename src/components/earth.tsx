@@ -14,6 +14,7 @@ const Earth = () => {
     satellites,
     selectedSatellite,
     selectSatelliteByIndex,
+    deselectSatellite,
   } = useEarthScene();
 
   /* ---- Search ---- */
@@ -95,7 +96,7 @@ const Earth = () => {
                 // Delay to allow click on result
                 setTimeout(() => setSearchOpen(false), 200);
               }}
-              className="w-44 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 placeholder-white/40 backdrop-blur-md transition-colors outline-none focus:bg-white/15 sm:w-52"
+              className="w-48 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 placeholder-white/40 backdrop-blur-md transition-colors outline-none focus:bg-white/15 sm:w-52 sm:text-sm"
             />
             {searchOpen && results.length > 0 && (
               <ul className="absolute top-full left-1/2 mt-1 max-h-64 w-72 -translate-x-1/2 overflow-y-auto rounded-xl bg-black/70 py-1 backdrop-blur-xl sm:left-0 sm:translate-x-0">
@@ -158,39 +159,43 @@ const Earth = () => {
 
         {/* ── Bottom: Satellite info panel (full-width on mobile, right on desktop) ── */}
         {selectedSatellite && info && (
-          <div className="pointer-events-auto absolute right-3 bottom-16 left-3 rounded-2xl bg-white/10 p-3 backdrop-blur-xl sm:right-4 sm:bottom-6 sm:left-auto sm:w-56 sm:p-4">
-            <h3 className="mb-2 text-[10px] font-semibold tracking-wider text-white/50 uppercase sm:mb-3 sm:text-xs">
-              Orbital data
-            </h3>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-1 sm:gap-0 sm:space-y-1.5 sm:text-sm">
-              <Row label="NORAD ID" value={String(selectedSatellite.id)} />
-              <Row
-                label="Inclination"
-                value={`${selectedSatellite.inc.toFixed(2)}°`}
-              />
-              <Row
-                label="Eccentricity"
-                value={selectedSatellite.ecc.toFixed(5)}
-              />
-              <Row label="Period" value={`${info.periodMin} min`} />
-              <Row label="Perigee" value={`${info.perigee} km`} />
-              <Row label="Apogee" value={`${info.apogee} km`} />
-              <Row
-                label="RAAN"
-                value={`${selectedSatellite.raan.toFixed(2)}°`}
-              />
-              <Row
-                label="Arg Perigee"
-                value={`${selectedSatellite.argp.toFixed(2)}°`}
-              />
-            </dl>
+          <div className="pointer-events-auto absolute right-3 bottom-16 left-3 flex flex-col gap-2 sm:right-4 sm:bottom-6 sm:left-auto sm:w-56">
+            <div className="rounded-2xl bg-white/10 p-3 backdrop-blur-xl sm:p-4">
+              <h3 className="mb-2 text-[10px] font-semibold tracking-wider text-white/50 uppercase sm:mb-3 sm:text-xs">
+                Orbital data
+              </h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-1 sm:gap-0 sm:space-y-1.5 sm:text-sm">
+                <Row label="NORAD ID" value={String(selectedSatellite.id)} />
+                <Row
+                  label="Inclination"
+                  value={`${selectedSatellite.inc.toFixed(2)}°`}
+                />
+                <Row
+                  label="Eccentricity"
+                  value={selectedSatellite.ecc.toFixed(5)}
+                />
+                <Row label="Period" value={`${info.periodMin} min`} />
+                <Row label="Perigee" value={`${info.perigee} km`} />
+                <Row label="Apogee" value={`${info.apogee} km`} />
+                <Row
+                  label="RAAN"
+                  value={`${selectedSatellite.raan.toFixed(2)}°`}
+                />
+                <Row
+                  label="Arg Perigee"
+                  value={`${selectedSatellite.argp.toFixed(2)}°`}
+                />
+              </dl>
+            </div>
           </div>
         )}
       </div>
 
       {/* ── Simulation clock: hidden when following a satellite on mobile ── */}
       {simDate && (
-        <div className={`absolute bottom-16 left-1/2 z-10 -translate-x-1/2 rounded-xl bg-white/10 px-4 py-2 text-center backdrop-blur-md sm:bottom-6 sm:left-4 sm:translate-x-0 sm:text-left ${selectedSatellite ? 'hidden sm:block' : ''}`}>
+        <div
+          className={`absolute bottom-16 left-1/2 z-10 -translate-x-1/2 rounded-xl bg-white/10 px-4 py-2 text-center backdrop-blur-md sm:bottom-6 sm:left-4 sm:translate-x-0 sm:text-left ${selectedSatellite ? 'hidden sm:block' : ''}`}
+        >
           <p className="font-mono text-xs text-white/90 sm:text-sm">
             {simDate.toLocaleDateString(undefined, {
               year: 'numeric',
@@ -200,7 +205,9 @@ const Earth = () => {
             {simDate.toLocaleTimeString()}
           </p>
           {timeWarp > 1 && (
-            <p className="text-[10px] text-white/50 sm:text-xs">Warp {timeWarp}x</p>
+            <p className="text-[10px] text-white/50 sm:text-xs">
+              Warp {timeWarp}x
+            </p>
           )}
         </div>
       )}
@@ -232,6 +239,23 @@ const Earth = () => {
             />
           </svg>
         </button>
+        {/* ── Mobile deselect button ── */}
+        {selectedSatellite && info ? (
+          <button
+            onClick={deselectSatellite}
+            className="flex w-fit items-center justify-center gap-2 truncate rounded-full bg-white/10 px-4 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors active:bg-white/20"
+          >
+            Deselect satellite
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="size-4"
+            >
+              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+            </svg>
+          </button>
+        ) : null}
       </div>
     </div>
   );

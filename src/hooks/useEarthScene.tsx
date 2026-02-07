@@ -34,6 +34,7 @@ const useEarthScene = () => {
   const [simDate, setSimDate] = useState<Date | null>(null);
   const satellitesRef = useRef<SatelliteGp[]>([]);
   const selectByIndexRef = useRef<(index: number) => void>(() => {});
+  const clearSelectionRef = useRef<(() => void) | null>(null);
   const resetSimTimeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -150,6 +151,7 @@ const useEarthScene = () => {
     }
 
     selectByIndexRef.current = selectSat;
+    clearSelectionRef.current = clearSelection;
 
     function onPointerDown(e: PointerEvent) {
       if (e.button !== 0) return;
@@ -261,6 +263,10 @@ const useEarthScene = () => {
     resetSimTimeRef.current?.();
   }, []);
 
+  const deselectSatellite = useCallback(() => {
+    clearSelectionRef.current?.();
+  }, []);
+
   return {
     containerRef,
     timeWarp,
@@ -270,6 +276,7 @@ const useEarthScene = () => {
     satellites,
     selectedSatellite,
     selectSatelliteByIndex,
+    deselectSatellite,
   };
 };
 
