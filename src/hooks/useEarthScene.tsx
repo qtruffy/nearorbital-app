@@ -31,8 +31,10 @@ const useEarthScene = () => {
   const [satellites, setSatellites] = useState<SatelliteGp[]>([]);
   const [selectedSatellite, setSelectedSatellite] =
     useState<SatelliteGp | null>(null);
+  const [simDate, setSimDate] = useState<Date | null>(null);
   const satellitesRef = useRef<SatelliteGp[]>([]);
   const selectByIndexRef = useRef<(index: number) => void>(() => {});
+  const resetSimTimeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     timeWarpRef.current = timeWarp;
@@ -77,6 +79,12 @@ const useEarthScene = () => {
     // Simulated time
     let simTime = Date.now();
     let lastRealTime = performance.now();
+
+    resetSimTimeRef.current = () => {
+      simTime = Date.now();
+      setSimDate(new Date(simTime));
+      setTimeWarp(1);
+    };
 
     /* ---- Orbit line, selection & camera follow ---- */
     let orbitLine: THREE.Line | null = null;
@@ -199,6 +207,7 @@ const useEarthScene = () => {
 
     /* ---- Animation loop ---- */
     let animationFrameId: number;
+    let lastSimDateUpdate = 0;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
@@ -207,6 +216,12 @@ const useEarthScene = () => {
       lastRealTime = now;
 
       simTime += deltaReal * timeWarpRef.current;
+
+      // Update simDate state at ~4 Hz to avoid excessive re-renders
+      if (now - lastSimDateUpdate > 250) {
+        lastSimDateUpdate = now;
+        setSimDate(new Date(simTime));
+      }
 
       // Propagate positions BEFORE camera update so camera uses current frame data
       if (cache && satPoints && positions) {
@@ -242,10 +257,16 @@ const useEarthScene = () => {
     selectByIndexRef.current(index);
   }, []);
 
+  const resetSimTime = useCallback(() => {
+    resetSimTimeRef.current?.();
+  }, []);
+
   return {
     containerRef,
     timeWarp,
     cycleTimeWarp,
+    resetSimTime,
+    simDate,
     satellites,
     selectedSatellite,
     selectSatelliteByIndex,

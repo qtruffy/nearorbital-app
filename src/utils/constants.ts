@@ -48,7 +48,7 @@ export const SATELLITE_COLOR = 0x4fc3f7;
 // Satellite opacity
 export const SATELLITE_OPACITY = 0.8;
 // Available time warp speeds
-export const TIME_WARP_SPEEDS = [1, 10, 100, 500, 2000] as const;
+export const TIME_WARP_SPEEDS = [1, 10, 100, 500, 2000, 10000] as const;
 
 /** Orbit line */
 // Number of segments to draw one full orbit

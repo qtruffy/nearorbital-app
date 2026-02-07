@@ -9,6 +9,8 @@ const Earth = () => {
     containerRef,
     timeWarp,
     cycleTimeWarp,
+    resetSimTime,
+    simDate,
     satellites,
     selectedSatellite,
     selectSatelliteByIndex,
@@ -41,9 +43,21 @@ const Earth = () => {
 
   /* ---- Copy satellite name ---- */
   const [copied, setCopied] = useState(false);
-  const copyName = useCallback(() => {
+  const copyName = useCallback(async () => {
     if (!selectedSatellite) return;
-    navigator.clipboard.writeText(selectedSatellite.name);
+    try {
+      await navigator.clipboard.writeText(selectedSatellite.name);
+    } catch {
+      // Fallback for mobile browsers that don't support clipboard API
+      const textarea = document.createElement('textarea');
+      textarea.value = selectedSatellite.name;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }, [selectedSatellite]);
@@ -64,8 +78,8 @@ const Earth = () => {
     <div ref={containerRef} className="relative h-full w-full touch-none">
       {/* ── HUD overlay (pointer-events-none, children opt-in) ── */}
       <div className="pointer-events-none absolute inset-0 z-10">
-        {/* ── Top-left: Search + count ── */}
-        <div className="pointer-events-auto absolute top-4 left-4 flex items-center gap-3">
+        {/* ── Top: Search + count (centered on mobile, left on desktop) ── */}
+        <div className="pointer-events-auto absolute top-[max(0.75rem,env(safe-area-inset-top))] left-1/2 flex -translate-x-1/2 items-center gap-2 sm:left-4 sm:translate-x-0 sm:gap-3">
           <div className="relative">
             <input
               ref={inputRef}
@@ -81,10 +95,10 @@ const Earth = () => {
                 // Delay to allow click on result
                 setTimeout(() => setSearchOpen(false), 200);
               }}
-              className="w-52 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 placeholder-white/40 backdrop-blur-md transition-colors outline-none focus:bg-white/15"
+              className="w-44 rounded-full bg-white/10 px-4 py-2 text-sm text-white/90 placeholder-white/40 backdrop-blur-md transition-colors outline-none focus:bg-white/15 sm:w-52"
             />
             {searchOpen && results.length > 0 && (
-              <ul className="absolute top-full left-0 mt-1 max-h-64 w-72 overflow-y-auto rounded-xl bg-black/70 py-1 backdrop-blur-xl">
+              <ul className="absolute top-full left-1/2 mt-1 max-h-64 w-72 -translate-x-1/2 overflow-y-auto rounded-xl bg-black/70 py-1 backdrop-blur-xl sm:left-0 sm:translate-x-0">
                 {results.map(r => (
                   <li key={r.index}>
                     <button
@@ -100,20 +114,20 @@ const Earth = () => {
             )}
           </div>
           {satellites.length > 0 && (
-            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/70 backdrop-blur-md">
+            <span className="truncate rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white/70 backdrop-blur-md">
               {satellites.length.toLocaleString()} satellites
             </span>
           )}
         </div>
 
-        {/* ── Top-right: Selected satellite name ── */}
+        {/* ── Satellite name (centered below search on mobile, top-right on desktop) ── */}
         {selectedSatellite && (
-          <div className="pointer-events-auto absolute top-4 right-4">
+          <div className="pointer-events-auto absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+2.75rem)] left-1/2 max-w-[80vw] -translate-x-1/2 sm:top-4 sm:right-4 sm:left-auto sm:max-w-none sm:translate-x-0">
             <button
               onClick={copyName}
               className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
             >
-              {selectedSatellite.name}
+              <span className="truncate">{selectedSatellite.name}</span>
               {copied ? (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -142,13 +156,13 @@ const Earth = () => {
           </div>
         )}
 
-        {/* ── Bottom-right: Satellite info panel ── */}
+        {/* ── Bottom: Satellite info panel (full-width on mobile, right on desktop) ── */}
         {selectedSatellite && info && (
-          <div className="pointer-events-auto absolute right-4 bottom-6 w-56 rounded-2xl bg-white/10 p-4 backdrop-blur-xl">
-            <h3 className="mb-3 text-xs font-semibold tracking-wider text-white/50 uppercase">
+          <div className="pointer-events-auto absolute right-3 bottom-16 left-3 rounded-2xl bg-white/10 p-3 backdrop-blur-xl sm:right-4 sm:bottom-6 sm:left-auto sm:w-56 sm:p-4">
+            <h3 className="mb-2 text-[10px] font-semibold tracking-wider text-white/50 uppercase sm:mb-3 sm:text-xs">
               Orbital data
             </h3>
-            <dl className="space-y-1.5 text-sm">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-1 sm:gap-0 sm:space-y-1.5 sm:text-sm">
               <Row label="NORAD ID" value={String(selectedSatellite.id)} />
               <Row
                 label="Inclination"
@@ -174,13 +188,51 @@ const Earth = () => {
         )}
       </div>
 
-      {/* ── Bottom-center: Time warp button ── */}
-      <button
-        onClick={cycleTimeWarp}
-        className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
-      >
-        {timeWarp === 1 ? '1x' : `${timeWarp}x`}
-      </button>
+      {/* ── Simulation clock: hidden when following a satellite on mobile ── */}
+      {simDate && (
+        <div className={`absolute bottom-16 left-1/2 z-10 -translate-x-1/2 rounded-xl bg-white/10 px-4 py-2 text-center backdrop-blur-md sm:bottom-6 sm:left-4 sm:translate-x-0 sm:text-left ${selectedSatellite ? 'hidden sm:block' : ''}`}>
+          <p className="font-mono text-xs text-white/90 sm:text-sm">
+            {simDate.toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            })}{' '}
+            {simDate.toLocaleTimeString()}
+          </p>
+          {timeWarp > 1 && (
+            <p className="text-[10px] text-white/50 sm:text-xs">Warp {timeWarp}x</p>
+          )}
+        </div>
+      )}
+
+      {/* ── Bottom-center: Time warp controls ── */}
+      <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 sm:bottom-6">
+        <button
+          onClick={cycleTimeWarp}
+          className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
+        >
+          {timeWarp === 1 ? '1x' : `${timeWarp}x`}
+        </button>
+        <button
+          onClick={resetSimTime}
+          className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
+          title="Reset to current time"
+        >
+          Reset
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="size-4"
+          >
+            <path
+              fillRule="evenodd"
+              d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.451a.75.75 0 0 0 0-1.5H4.5a.75.75 0 0 0-.75.75v3.75a.75.75 0 0 0 1.5 0v-2.127l.209.209a7 7 0 0 0 11.723-3.138.75.75 0 0 0-1.45-.39l-.42.291ZM4.688 8.576a5.5 5.5 0 0 1 9.201-2.466l.312.311H11.75a.75.75 0 0 0 0 1.5h3.75a.75.75 0 0 0 .75-.75V3.421a.75.75 0 0 0-1.5 0v2.127l-.209-.209A7 7 0 0 0 2.818 8.477a.75.75 0 0 0 1.45.39l.42-.291Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 };
