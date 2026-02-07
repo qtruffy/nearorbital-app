@@ -5,10 +5,12 @@ import {
   type OrbitCache,
   type SatelliteOrbitalData,
   computeOrbitPath,
+  getOrbitPlaneVectors,
   prepareOrbits,
   propagateFromCache,
 } from '@/utils/satellite-helpers';
 import {
+  computeLocalBasis,
   createCamera,
   createCameraControls,
   createEarth,
@@ -71,13 +73,42 @@ const useEarthScene = () => {
     let simTime = Date.now();
     let lastRealTime = performance.now();
 
-    /* ---- Orbit line (click selection) ---- */
+    /* ---- Orbit line, selection & camera follow ---- */
     let orbitLine: THREE.Line | null = null;
+    let selectedSatIndex: number | null = null;
     const raycaster = new THREE.Raycaster();
     const pointerNdc = new THREE.Vector2();
+    const satWorldPos = new THREE.Vector3();
+    const orbitP = new THREE.Vector3();
+    const orbitQ = new THREE.Vector3();
+    const basis = new THREE.Matrix3();
+    const basisInv = new THREE.Matrix3();
 
     // Track pointer to distinguish click from drag
     let pointerDownPos = { x: 0, y: 0 };
+
+    function buildLocalBasis(satIndex: number) {
+      if (!cache || !positions) return;
+      const i3 = satIndex * 3;
+      satWorldPos.set(positions[i3], positions[i3 + 1], positions[i3 + 2]);
+      const pq = getOrbitPlaneVectors(cache, satIndex);
+      orbitP.set(pq.px, pq.py, pq.pz);
+      orbitQ.set(pq.qx, pq.qy, pq.qz);
+      computeLocalBasis(satWorldPos, orbitP, orbitQ, basis, basisInv);
+    }
+
+    function clearSelection() {
+      if (orbitLine) {
+        scene.remove(orbitLine);
+        orbitLine.geometry.dispose();
+        (orbitLine.material as THREE.Material).dispose();
+        orbitLine = null;
+      }
+      if (selectedSatIndex !== null) {
+        selectedSatIndex = null;
+        controls.deselect();
+      }
+    }
 
     function onPointerDown(e: PointerEvent) {
       if (e.button !== 0) return;
@@ -88,7 +119,6 @@ const useEarthScene = () => {
       if (e.button !== 0 || !cache || !satPoints) return;
       const dx = e.clientX - pointerDownPos.x;
       const dy = e.clientY - pointerDownPos.y;
-      // Only treat as click if pointer barely moved
       if (dx * dx + dy * dy > 9) return;
 
       const rect = renderer.domElement.getBoundingClientRect();
@@ -110,14 +140,29 @@ const useEarthScene = () => {
 
       if (hits.length > 0) {
         const satIndex = hits[0].index!;
+        selectedSatIndex = satIndex;
+
         const path = computeOrbitPath(cache, satIndex);
         orbitLine = createOrbitLine(path);
         scene.add(orbitLine);
+
+        // Lock camera onto satellite
+        buildLocalBasis(satIndex);
+        controls.select(satWorldPos, basis, basisInv);
+      } else {
+        clearSelection();
+      }
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        clearSelection();
       }
     }
 
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     renderer.domElement.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('keydown', onKeyDown);
 
     fetch('/api/satellites')
       .then(res => res.json())
@@ -145,13 +190,19 @@ const useEarthScene = () => {
 
       simTime += deltaReal * timeWarpRef.current;
 
-      controls.update();
-
+      // Propagate positions BEFORE camera update so camera uses current frame data
       if (cache && satPoints && positions) {
         propagateFromCache(cache, new Date(simTime), positions);
         updateSatellitePositions(satPoints, positions);
+
+        // Update follow target before controls.update() computes camera position
+        if (selectedSatIndex !== null) {
+          buildLocalBasis(selectedSatIndex);
+          controls.updateFollow(satWorldPos, basis, basisInv);
+        }
       }
 
+      controls.update();
       renderer.render(scene, camera);
     };
     animate();
@@ -160,6 +211,7 @@ const useEarthScene = () => {
       aborted = true;
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('keydown', onKeyDown);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);
       controls.dispose();

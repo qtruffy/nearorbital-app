@@ -135,6 +135,22 @@ export function propagateFromCache(
 }
 
 /**
+ * Returns the orbit plane basis vectors (P and Q) in scene coordinates
+ * for a satellite. These define the orbital plane orientation.
+ */
+export function getOrbitPlaneVectors(
+  cache: OrbitCache,
+  satIndex: number,
+): { px: number; py: number; pz: number; qx: number; qy: number; qz: number } {
+  const off = satIndex * STRIDE;
+  const { buf } = cache;
+  return {
+    px: buf[off + 6],  py: buf[off + 10], pz: buf[off + 8],
+    qx: buf[off + 7],  qy: buf[off + 11], qz: buf[off + 9],
+  };
+}
+
+/**
  * Compute the full orbit path (one revolution) for a single satellite.
  * Returns a Float32Array of (ORBIT_SEGMENTS + 1) * 3 values (closed loop).
  */

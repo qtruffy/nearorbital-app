@@ -63,3 +63,18 @@ export const ORBIT_DASH_SIZE = 0.04;
 export const ORBIT_GAP_SIZE = 0.02;
 // Raycaster threshold for picking satellite points
 export const PICK_THRESHOLD = 0.005;
+
+/** Follow camera (satellite lock) */
+// Initial camera distance from satellite when first selecting
+export const FOLLOW_INITIAL_DISTANCE = 0.4;
+// Min/max distance from satellite in follow mode
+export const FOLLOW_MIN_DISTANCE = 0.2;
+export const FOLLOW_MAX_DISTANCE = 5.0;
+// Lerp factor for smooth zoom toward satellite
+export const CAMERA_FOLLOW_LERP = 0.08;
+// Lerp factor for smooth return to Earth center on deselect
+export const CAMERA_RETURN_LERP = 0.04;
+// Rotation speed in follow mode (rad/px) — matches free mode base speed
+export const FOLLOW_ROTATE_SPEED = 0.001;
+// Extra multiplier for follow-mode rotation sensitivity (increase to make more sensitive)
+export const FOLLOW_ROTATE_MULTIPLIER = 3;
