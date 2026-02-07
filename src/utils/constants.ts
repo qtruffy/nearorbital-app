@@ -35,3 +35,17 @@ export const CONTROLS_DAMPING = 0.9;
 export const AMBIENT_LIGHT_INTENSITY = 0.6;
 // Directional light intensity
 export const DIRECTIONAL_LIGHT_INTENSITY = 1.2;
+
+/** Satellite constants */
+// Real Earth radius in km (for orbital conversion)
+export const EARTH_RADIUS_KM = 6371;
+// Standard gravitational parameter (km³/s²)
+export const MU_EARTH_KM3S2 = 398600.4418;
+// Point size for satellite dots
+export const SATELLITE_POINT_SIZE = 2;
+// Satellite color (cyan)
+export const SATELLITE_COLOR = 0x4fc3f7;
+// Satellite opacity
+export const SATELLITE_OPACITY = 0.8;
+// Available time warp speeds
+export const TIME_WARP_SPEEDS = [1, 10, 100, 500, 2000] as const;

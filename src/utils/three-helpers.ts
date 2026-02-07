@@ -16,6 +16,9 @@ import {
   EARTH_RADIUS,
   EARTH_SEGMENTS,
   EARTH_TEXTURE,
+  SATELLITE_COLOR,
+  SATELLITE_OPACITY,
+  SATELLITE_POINT_SIZE,
   SCENE_BACKGROUND_COLOR,
 } from '@/utils/constants';
 import * as THREE from 'three';
@@ -263,4 +266,33 @@ export function createCameraControls(
   }
 
   return { update, dispose };
+}
+
+export function createSatellitePoints(count: number) {
+  const positions = new Float32Array(count * 3);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: SATELLITE_POINT_SIZE,
+    color: SATELLITE_COLOR,
+    transparent: true,
+    opacity: SATELLITE_OPACITY,
+    sizeAttenuation: false,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+
+  return new THREE.Points(geometry, material);
+}
+
+export function updateSatellitePositions(
+  points: THREE.Points,
+  positions: Float32Array,
+) {
+  const attr = points.geometry.getAttribute(
+    'position',
+  ) as THREE.BufferAttribute;
+  attr.array.set(positions);
+  attr.needsUpdate = true;
 }
