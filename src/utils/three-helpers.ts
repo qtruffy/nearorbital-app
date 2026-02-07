@@ -152,6 +152,7 @@ export function createCameraControls(
 
   /* ── Follow mode state ── */
   let hasLocalBasis = false;
+  let savedFreeRadius = radius; // radius to restore on deselect
   const localBasis = new THREE.Matrix3();
   const localBasisInv = new THREE.Matrix3();
   const camFollowQuat = new THREE.Quaternion();
@@ -502,6 +503,7 @@ export function createCameraControls(
       camFollowDist = CAMERA_POSITION[2];
     }
 
+    savedFreeRadius = radius;
     currentTarget.copy(satPos);
     focusTarget.copy(satPos);
     hasLocalBasis = true;
@@ -518,8 +520,8 @@ export function createCameraControls(
    */
   function deselect() {
     if (hasLocalBasis) {
-      // Camera position is already correct in world space
-      radius = camera.position.distanceTo(currentTarget);
+      // Restore the radius the camera had before entering follow mode
+      radius = savedFreeRadius;
       hasLocalBasis = false;
     }
     focusTarget.set(0, 0, 0);

@@ -1,9 +1,9 @@
 'use client';
 
+import type { SatelliteGp } from '@/app/api/satellites/route';
 import { PICK_THRESHOLD, TIME_WARP_SPEEDS } from '@/utils/constants';
 import {
   type OrbitCache,
-  type SatelliteOrbitalData,
   computeOrbitPath,
   getOrbitPlaneVectors,
   prepareOrbits,
@@ -28,6 +28,11 @@ const useEarthScene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [timeWarp, setTimeWarp] = useState(1);
   const timeWarpRef = useRef(timeWarp);
+  const [satellites, setSatellites] = useState<SatelliteGp[]>([]);
+  const [selectedSatellite, setSelectedSatellite] =
+    useState<SatelliteGp | null>(null);
+  const satellitesRef = useRef<SatelliteGp[]>([]);
+  const selectByIndexRef = useRef<(index: number) => void>(() => {});
 
   useEffect(() => {
     timeWarpRef.current = timeWarp;
@@ -108,7 +113,35 @@ const useEarthScene = () => {
         selectedSatIndex = null;
         controls.deselect();
       }
+      setSelectedSatellite(null);
     }
+
+    function selectSat(satIndex: number) {
+      if (!cache || !positions) return;
+
+      // Remove previous orbit line
+      if (orbitLine) {
+        scene.remove(orbitLine);
+        orbitLine.geometry.dispose();
+        (orbitLine.material as THREE.Material).dispose();
+        orbitLine = null;
+      }
+
+      selectedSatIndex = satIndex;
+
+      const path = computeOrbitPath(cache, satIndex);
+      orbitLine = createOrbitLine(path);
+      scene.add(orbitLine);
+
+      // Lock camera onto satellite
+      buildLocalBasis(satIndex);
+      controls.select(satWorldPos, basis, basisInv);
+
+      // Update React state
+      setSelectedSatellite(satellitesRef.current[satIndex] ?? null);
+    }
+
+    selectByIndexRef.current = selectSat;
 
     function onPointerDown(e: PointerEvent) {
       if (e.button !== 0) return;
@@ -130,25 +163,8 @@ const useEarthScene = () => {
       raycaster.setFromCamera(pointerNdc, camera);
       const hits = raycaster.intersectObject(satPoints);
 
-      // Remove previous orbit line
-      if (orbitLine) {
-        scene.remove(orbitLine);
-        orbitLine.geometry.dispose();
-        (orbitLine.material as THREE.Material).dispose();
-        orbitLine = null;
-      }
-
       if (hits.length > 0) {
-        const satIndex = hits[0].index!;
-        selectedSatIndex = satIndex;
-
-        const path = computeOrbitPath(cache, satIndex);
-        orbitLine = createOrbitLine(path);
-        scene.add(orbitLine);
-
-        // Lock camera onto satellite
-        buildLocalBasis(satIndex);
-        controls.select(satWorldPos, basis, basisInv);
+        selectSat(hits[0].index!);
       } else {
         clearSelection();
       }
@@ -168,7 +184,9 @@ const useEarthScene = () => {
       .then(res => res.json())
       .then(json => {
         if (aborted) return;
-        const sats = json.data as SatelliteOrbitalData[];
+        const sats = json.data as SatelliteGp[];
+        satellitesRef.current = sats;
+        setSatellites(sats);
         cache = prepareOrbits(sats);
         positions = new Float32Array(sats.length * 3);
         satPoints = createSatellitePoints(sats.length);
@@ -220,7 +238,18 @@ const useEarthScene = () => {
     };
   }, []);
 
-  return { containerRef, timeWarp, cycleTimeWarp };
+  const selectSatelliteByIndex = useCallback((index: number) => {
+    selectByIndexRef.current(index);
+  }, []);
+
+  return {
+    containerRef,
+    timeWarp,
+    cycleTimeWarp,
+    satellites,
+    selectedSatellite,
+    selectSatelliteByIndex,
+  };
 };
 
 export { useEarthScene };
