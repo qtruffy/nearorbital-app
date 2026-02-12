@@ -50,6 +50,10 @@ const useEarthScene = () => {
     });
   }, []);
 
+  const stopCycleTimeWarp = useCallback(() => {
+    setTimeWarp(1);
+  }, []);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -273,6 +277,7 @@ const useEarthScene = () => {
     cycleTimeWarp,
     resetSimTime,
     simDate,
+    stopCycleTimeWarp,
     satellites,
     selectedSatellite,
     selectSatelliteByIndex,

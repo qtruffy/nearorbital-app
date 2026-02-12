@@ -10,6 +10,7 @@ const Earth = () => {
     timeWarp,
     cycleTimeWarp,
     resetSimTime,
+    stopCycleTimeWarp,
     simDate,
     satellites,
     selectedSatellite,
@@ -126,7 +127,7 @@ const Earth = () => {
           <div className="pointer-events-auto absolute top-[calc(max(0.75rem,env(safe-area-inset-top))+2.75rem)] left-1/2 max-w-[80vw] -translate-x-1/2 sm:top-4 sm:right-4 sm:left-auto sm:max-w-none sm:translate-x-0">
             <button
               onClick={copyName}
-              className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
+              className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20 sm:hover:bg-white/20"
             >
               <span className="truncate">{selectedSatellite.name}</span>
               {copied ? (
@@ -191,6 +192,28 @@ const Earth = () => {
         )}
       </div>
 
+      {/* ── Mobile deselect button ── */}
+      {selectedSatellite && info ? (
+        <div
+          className={`absolute bottom-48 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 sm:bottom-18`}
+        >
+          <button
+            onClick={deselectSatellite}
+            className="flex w-fit items-center justify-center gap-2 truncate rounded-full bg-white/10 px-4 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20"
+          >
+            Deselect satellite
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="size-4"
+            >
+              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
+
       {/* ── Simulation clock: hidden when following a satellite on mobile ── */}
       {simDate && (
         <div
@@ -214,48 +237,58 @@ const Earth = () => {
 
       {/* ── Bottom-center: Time warp controls ── */}
       <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 sm:bottom-6">
-        <button
-          onClick={cycleTimeWarp}
-          className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
-        >
-          {timeWarp === 1 ? '1x' : `${timeWarp}x`}
-        </button>
-        <button
-          onClick={resetSimTime}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors active:bg-white/20 sm:hover:bg-white/20"
-          title="Reset to current time"
-        >
-          Reset
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="size-4"
-          >
-            <path
-              fillRule="evenodd"
-              d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.451a.75.75 0 0 0 0-1.5H4.5a.75.75 0 0 0-.75.75v3.75a.75.75 0 0 0 1.5 0v-2.127l.209.209a7 7 0 0 0 11.723-3.138.75.75 0 0 0-1.45-.39l-.42.291ZM4.688 8.576a5.5 5.5 0 0 1 9.201-2.466l.312.311H11.75a.75.75 0 0 0 0 1.5h3.75a.75.75 0 0 0 .75-.75V3.421a.75.75 0 0 0-1.5 0v2.127l-.209-.209A7 7 0 0 0 2.818 8.477a.75.75 0 0 0 1.45.39l.42-.291Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
-        {/* ── Mobile deselect button ── */}
-        {selectedSatellite && info ? (
-          <button
-            onClick={deselectSatellite}
-            className="flex w-fit items-center justify-center gap-2 truncate rounded-full bg-white/10 px-4 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors active:bg-white/20"
-          >
-            Deselect satellite
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="size-4"
+        {timeWarp > 1 ? (
+          <>
+            <button
+              onClick={resetSimTime}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20 sm:hover:bg-white/20"
+              title="Reset to current time"
             >
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-            </svg>
+              Reset
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.451a.75.75 0 0 0 0-1.5H4.5a.75.75 0 0 0-.75.75v3.75a.75.75 0 0 0 1.5 0v-2.127l.209.209a7 7 0 0 0 11.723-3.138.75.75 0 0 0-1.45-.39l-.42.291ZM4.688 8.576a5.5 5.5 0 0 1 9.201-2.466l.312.311H11.75a.75.75 0 0 0 0 1.5h3.75a.75.75 0 0 0 .75-.75V3.421a.75.75 0 0 0-1.5 0v2.127l-.209-.209A7 7 0 0 0 2.818 8.477a.75.75 0 0 0 1.45.39l.42-.291Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+            <button
+              onClick={cycleTimeWarp}
+              className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20 sm:hover:bg-white/20"
+            >
+              {timeWarp === 1 ? '1x' : `${timeWarp}x`}
+            </button>
+            <button
+              onClick={stopCycleTimeWarp}
+              className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 text-sm text-white/70 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20 sm:hover:bg-white/20"
+              title="Stop"
+            >
+              Stop
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="size-4"
+              >
+                {/* X Icon */}
+                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={cycleTimeWarp}
+            className="rounded-full bg-white/10 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition-colors hover:cursor-pointer active:bg-white/20 sm:hover:bg-white/20"
+          >
+            {timeWarp === 1 ? '1x' : `${timeWarp}x`}
           </button>
-        ) : null}
+        )}
       </div>
     </div>
   );
